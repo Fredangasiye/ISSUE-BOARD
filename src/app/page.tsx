@@ -171,6 +171,29 @@ export default function IssueBoard() {
           <p className="text-lg text-gray-600">Huntingdon Terrace</p>
         </motion.div>
 
+        {/* Navigation Buttons */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="flex flex-col sm:flex-row gap-4 mb-8"
+        >
+          <button
+            onClick={() => document.getElementById('report-form')?.scrollIntoView({ behavior: 'smooth' })}
+            className="flex-1 bg-blue-600 text-white py-4 px-6 rounded-xl font-semibold hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105"
+          >
+            <AlertCircle className="mr-2 h-6 w-6" />
+            Report an Issue
+          </button>
+          <button
+            onClick={() => document.getElementById('current-issues')?.scrollIntoView({ behavior: 'smooth' })}
+            className="flex-1 bg-green-600 text-white py-4 px-6 rounded-xl font-semibold hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105"
+          >
+            <CheckCircle className="mr-2 h-6 w-6" />
+            Current Issues
+          </button>
+        </motion.div>
+
         {/* Success/Error Messages */}
         <AnimatePresence>
           {success && (
@@ -197,6 +220,7 @@ export default function IssueBoard() {
 
         {/* Report Form */}
         <motion.div
+          id="report-form"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
@@ -314,9 +338,9 @@ export default function IssueBoard() {
         </motion.div>
 
         {/* Divider */}
-        <div className="flex items-center my-8">
+        <div id="current-issues" className="flex items-center my-8">
           <div className="flex-1 border-t border-gray-300"></div>
-          <div className="px-4 text-gray-500 font-medium">Issue Status</div>
+          <div className="px-4 text-gray-500 font-medium">Current Issues</div>
           <div className="flex-1 border-t border-gray-300"></div>
         </div>
 
