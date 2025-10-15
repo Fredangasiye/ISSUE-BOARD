@@ -5,6 +5,7 @@ import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import { Camera, Upload, AlertCircle, CheckCircle, Clock, Filter } from "lucide-react";
 import { AIRTABLE_CONFIG } from "@/lib/config";
+import { CldUploadWidget } from "next-cloudinary";
 
 interface Issue {
   id: string;
@@ -22,7 +23,7 @@ interface FormData {
   unit: string;
   category: string;
   description: string;
-  photo: File | null;
+  photo: string | null;
 }
 
 const categories = [
@@ -80,6 +81,13 @@ export default function IssueBoard() {
     }
   };
 
+  // Handle photo upload
+  const handlePhotoUpload = (result: any) => {
+    if (result.event === "success") {
+      setForm({ ...form, photo: result.info.secure_url });
+    }
+  };
+
   // Initial load + auto-refresh every 30s
   useEffect(() => {
     fetchIssues();
@@ -107,32 +115,21 @@ export default function IssueBoard() {
     setSuccess(null);
 
     try {
-      const formData = new FormData();
-      formData.append("fields", JSON.stringify({
+      const fields: any = {
         Unit: form.unit,
         Category: form.category,
         Description: form.description,
         Status: "Pending",
         Created: new Date().toISOString(),
-      }));
+      };
 
       if (form.photo) {
-        formData.append("fields", JSON.stringify({
-          Photo: [{ url: URL.createObjectURL(form.photo) }]
-        }));
+        fields.Photo = form.photo;
       }
 
       await axios.post(
         `https://api.airtable.com/v0/${AIRTABLE_CONFIG.BASE_ID}/${AIRTABLE_CONFIG.TABLE_NAME}`,
-        {
-          fields: {
-            Unit: form.unit,
-            Category: form.category,
-            Description: form.description,
-            Status: "Pending",
-            Created: new Date().toISOString(),
-          },
-        },
+        { fields },
         {
           headers: {
             Authorization: `Bearer ${AIRTABLE_CONFIG.API_KEY}`,
@@ -264,26 +261,36 @@ export default function IssueBoard() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Photo (Optional)
               </label>
-              <div className="relative">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoChange}
-                  className="hidden"
-                  id="photo-upload"
-                />
-                <label
-                  htmlFor="photo-upload"
-                  className="flex items-center justify-center w-full p-4 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all"
-                >
-                  <div className="text-center">
-                    <Camera className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-                    <p className="text-sm text-gray-600">
-                      {form.photo ? form.photo.name : "Click to upload a photo"}
-                    </p>
+              <CldUploadWidget
+                uploadPreset="issue-board"
+                onUpload={handlePhotoUpload}
+                options={{
+                  maxFiles: 1,
+                  resourceType: "image",
+                  maxFileSize: 5000000, // 5MB
+                }}
+              >
+                {({ open }) => (
+                  <div
+                    onClick={() => open()}
+                    className="flex items-center justify-center w-full p-4 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all"
+                  >
+                    <div className="text-center">
+                      <Camera className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                      <p className="text-sm text-gray-600">
+                        {form.photo ? "Photo uploaded ✓" : "Click to upload a photo"}
+                      </p>
+                      {form.photo && (
+                        <img 
+                          src={form.photo} 
+                          alt="Uploaded" 
+                          className="mt-2 h-20 w-20 object-cover rounded-lg mx-auto"
+                        />
+                      )}
+                    </div>
                   </div>
-                </label>
-              </div>
+                )}
+              </CldUploadWidget>
             </div>
 
             <button
