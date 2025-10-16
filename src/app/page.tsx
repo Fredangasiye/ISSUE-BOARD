@@ -122,7 +122,7 @@ export default function IssueBoard() {
         Category: string;
         Description: string;
         Status: string;
-        Created: string;
+        "Date Reported": string;
         Photo?: string;
       } = {
         Unit: form.unit,
