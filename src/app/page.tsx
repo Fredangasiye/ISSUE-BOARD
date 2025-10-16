@@ -83,7 +83,8 @@ export default function IssueBoard() {
   };
 
   // Handle photo upload
-  const handlePhotoUpload = (result: { event: string; info: { secure_url: string } }) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handlePhotoUpload = (result: any) => {
     if (result.event === "success") {
       setForm({ ...form, photo: result.info.secure_url });
     }
