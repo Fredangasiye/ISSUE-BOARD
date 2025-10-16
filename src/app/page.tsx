@@ -68,7 +68,7 @@ export default function IssueBoard() {
   const fetchIssues = async () => {
     try {
       const response = await axios.get(
-        `https://api.airtable.com/v0/${AIRTABLE_CONFIG.BASE_ID}/${AIRTABLE_CONFIG.TABLE_NAME}?view=Grid%20view&sort%5B0%5D%5Bfield%5D=Created&sort%5B0%5D%5Bdirection%5D=desc`,
+        `https://api.airtable.com/v0/${AIRTABLE_CONFIG.BASE_ID}/${AIRTABLE_CONFIG.TABLE_NAME}?view=Grid%20view&sort%5B0%5D%5Bfield%5D=Date%20Reported&sort%5B0%5D%5Bdirection%5D=desc`,
         {
           headers: { 
             Authorization: `Bearer ${AIRTABLE_CONFIG.API_KEY}`,
@@ -129,7 +129,7 @@ export default function IssueBoard() {
         Category: form.category,
         Description: form.description,
         Status: "Pending",
-        Created: new Date().toISOString(),
+        "Date Reported": new Date().toISOString().split('T')[0],
       };
 
       if (form.photo) {
