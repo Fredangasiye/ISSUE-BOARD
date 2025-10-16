@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Camera, Upload, AlertCircle, CheckCircle, Clock, Filter } from "lucide-react";
 import { AIRTABLE_CONFIG } from "@/lib/config";
 import { CldUploadWidget } from "next-cloudinary";
+import Image from "next/image";
 
 interface Issue {
   id: string;
@@ -82,7 +83,7 @@ export default function IssueBoard() {
   };
 
   // Handle photo upload
-  const handlePhotoUpload = (result: any) => {
+  const handlePhotoUpload = (result: { event: string; info: { secure_url: string } }) => {
     if (result.event === "success") {
       setForm({ ...form, photo: result.info.secure_url });
     }
@@ -115,7 +116,14 @@ export default function IssueBoard() {
     setSuccess(null);
 
     try {
-      const fields: any = {
+      const fields: {
+        Unit: string;
+        Category: string;
+        Description: string;
+        Status: string;
+        Created: string;
+        Photo?: string;
+      } = {
         Unit: form.unit,
         Category: form.category,
         Description: form.description,
@@ -149,12 +157,6 @@ export default function IssueBoard() {
     }
   };
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setForm({ ...form, photo: file });
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -305,9 +307,11 @@ export default function IssueBoard() {
                         {form.photo ? "Photo uploaded ✓" : "Click to upload a photo"}
                       </p>
                       {form.photo && (
-                        <img 
+          <Image
                           src={form.photo} 
                           alt="Uploaded" 
+                          width={80}
+                          height={80}
                           className="mt-2 h-20 w-20 object-cover rounded-lg mx-auto"
                         />
                       )}
