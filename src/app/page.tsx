@@ -11,12 +11,12 @@ import Image from "next/image";
 interface Issue {
   id: string;
   fields: {
-    Unit?: string;
+    Unit?: number;
     Category?: string;
     Description?: string;
     Status?: string;
     Photo?: string;
-    Created?: string;
+    "Date Reported"?: string;
   };
 }
 
@@ -25,6 +25,12 @@ interface FormData {
   category: string;
   description: string;
   photo: string | null;
+}
+
+interface FormErrors {
+  unit?: string;
+  category?: string;
+  description?: string;
 }
 
 const categories = [
@@ -63,6 +69,8 @@ export default function IssueBoard() {
   const [filter, setFilter] = useState("All");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
+  const [uploadStatus, setUploadStatus] = useState<string>("");
 
   // Fetch issues from Airtable
   const fetchIssues = async () => {
@@ -87,6 +95,11 @@ export default function IssueBoard() {
   const handlePhotoUpload = (result: any) => {
     if (result.event === "success") {
       setForm({ ...form, photo: result.info.secure_url });
+      setUploadStatus("Photo uploaded successfully!");
+      setTimeout(() => setUploadStatus(""), 3000);
+    } else if (result.event === "error") {
+      setUploadStatus("Upload failed. Please try again.");
+      setTimeout(() => setUploadStatus(""), 3000);
     }
   };
 
@@ -115,11 +128,31 @@ export default function IssueBoard() {
     setLoading(true);
     setError(null);
     setSuccess(null);
+    setFormErrors({});
 
+    // Validate all fields
+    const errors: FormErrors = {};
+    
     // Validate unit number
     const unitNumber = parseInt(form.unit);
-    if (isNaN(unitNumber) || unitNumber <= 0) {
-      setError("Please enter a valid unit number (e.g., 101, 102, 201)");
+    if (!form.unit.trim()) {
+      errors.unit = "Unit number is required";
+    } else if (isNaN(unitNumber) || unitNumber <= 0) {
+      errors.unit = "Please enter a valid unit number (e.g., 101, 102, 201)";
+    }
+    
+    // Validate category
+    if (!form.category.trim()) {
+      errors.category = "Category is required";
+    }
+    
+    // Validate description
+    if (!form.description.trim()) {
+      errors.description = "Description is required";
+    }
+    
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
       setLoading(false);
       return;
     }
@@ -157,6 +190,7 @@ export default function IssueBoard() {
 
       setSuccess("Issue submitted successfully!");
       setForm({ unit: "", category: "", description: "", photo: null });
+      setUploadStatus("");
       fetchIssues();
     } catch (err) {
       console.error("Error submitting issue:", err);
@@ -249,11 +283,21 @@ export default function IssueBoard() {
                 <input
                   type="text"
                   placeholder="e.g., 101, 102, 201, etc."
-                  className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 placeholder-gray-500"
+                  className={`w-full border p-3 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 placeholder-gray-500 ${
+                    formErrors.unit ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                  }`}
                   value={form.unit}
-                  onChange={(e) => setForm({ ...form, unit: e.target.value })}
+                  onChange={(e) => {
+                    setForm({ ...form, unit: e.target.value });
+                    if (formErrors.unit) {
+                      setFormErrors({ ...formErrors, unit: undefined });
+                    }
+                  }}
                   required
                 />
+                {formErrors.unit && (
+                  <p className="text-red-500 text-sm mt-1">{formErrors.unit}</p>
+                )}
               </div>
               
               <div>
@@ -261,9 +305,16 @@ export default function IssueBoard() {
                   Category
                 </label>
                 <select
-                  className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900"
+                  className={`w-full border p-3 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 ${
+                    formErrors.category ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                  }`}
                   value={form.category}
-                  onChange={(e) => setForm({ ...form, category: e.target.value })}
+                  onChange={(e) => {
+                    setForm({ ...form, category: e.target.value });
+                    if (formErrors.category) {
+                      setFormErrors({ ...formErrors, category: undefined });
+                    }
+                  }}
                   required
                 >
                   <option value="">Select Category</option>
@@ -273,6 +324,9 @@ export default function IssueBoard() {
                     </option>
                   ))}
                 </select>
+                {formErrors.category && (
+                  <p className="text-red-500 text-sm mt-1">{formErrors.category}</p>
+                )}
               </div>
             </div>
 
@@ -283,11 +337,21 @@ export default function IssueBoard() {
               <textarea
                 placeholder="Please describe the issue in detail..."
                 rows={4}
-                className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none text-gray-900 placeholder-gray-500"
+                className={`w-full border p-3 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none text-gray-900 placeholder-gray-500 ${
+                  formErrors.description ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                }`}
                 value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                onChange={(e) => {
+                  setForm({ ...form, description: e.target.value });
+                  if (formErrors.description) {
+                    setFormErrors({ ...formErrors, description: undefined });
+                  }
+                }}
                 required
               />
+              {formErrors.description && (
+                <p className="text-red-500 text-sm mt-1">{formErrors.description}</p>
+              )}
             </div>
 
             <div>
@@ -295,7 +359,7 @@ export default function IssueBoard() {
                 Photo (Optional)
               </label>
               <CldUploadWidget
-                uploadPreset="issue-board"
+                uploadPreset="ml_default"
                 onUpload={handlePhotoUpload}
                 options={{
                   maxFiles: 1,
@@ -306,14 +370,42 @@ export default function IssueBoard() {
                 {({ open }) => (
                   <div
                     onClick={() => open()}
-                    className="flex items-center justify-center w-full p-4 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all"
+                    className={`flex items-center justify-center w-full p-4 border-2 border-dashed rounded-xl cursor-pointer transition-all ${
+                      form.photo 
+                        ? 'border-green-400 bg-green-50' 
+                        : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'
+                    }`}
                   >
                     <div className="text-center">
-                      <Camera className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-                      <p className="text-sm text-gray-600">
+                      <Camera className={`mx-auto h-8 w-8 mb-2 ${
+                        form.photo ? 'text-green-500' : 'text-gray-400'
+                      }`} />
+                      <p className={`text-sm ${
+                        form.photo ? 'text-green-600' : 'text-gray-600'
+                      }`}>
                         {form.photo ? "Photo uploaded ✓" : "Click to upload a photo"}
                       </p>
+                      {uploadStatus && (
+                        <p className={`text-xs mt-1 ${
+                          uploadStatus.includes('successfully') ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {uploadStatus}
+                        </p>
+                      )}
                       {form.photo && (
+                        <Image
+                          src={form.photo}
+                          alt="Uploaded"
+                          width={60}
+                          height={60}
+                          className="mt-2 h-15 w-15 object-cover rounded-lg mx-auto"
+                        />
+                      )}
+                    </div>
+                  </div>
+                )}
+              </CldUploadWidget>
+            </div>
           <Image
                           src={form.photo} 
                           alt="Uploaded" 
