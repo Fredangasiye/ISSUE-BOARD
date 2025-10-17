@@ -15,7 +15,7 @@ interface Issue {
     Category?: string;
     Description?: string;
     Status?: string;
-    Photo?: string;
+    Attachments?: string[];
     "Date Reported"?: string;
   };
 }
@@ -34,14 +34,10 @@ interface FormErrors {
 }
 
 const categories = [
-  "Maintenance",
-  "Security", 
-  "Cleaning",
-  "Lighting",
-  "Electricity",
-  "Water",
-  "Signage",
-  "Other"
+  "Electrical",
+  "Plumbing", 
+  "Security",
+  "maintenance"
 ];
 
 const statusColors = {
@@ -164,7 +160,7 @@ export default function IssueBoard() {
         Description: string;
         Status: string;
         "Date Reported": string;
-        Photo?: string;
+        Attachments?: string[];
       } = {
         Unit: unitNumber,
         Category: form.category,
@@ -174,7 +170,7 @@ export default function IssueBoard() {
       };
 
       if (form.photo) {
-        fields.Photo = form.photo;
+        fields.Attachments = [form.photo];
       }
 
       await axios.post(
@@ -480,9 +476,10 @@ export default function IssueBoard() {
               </motion.div>
             ) : (
               filteredIssues.map((record, index) => {
-                const { Unit, Category, Description, Status, Photo } = record.fields;
+                const { Unit, Category, Description, Status, Attachments } = record.fields;
                 const StatusIcon = statusIcons[Status as keyof typeof statusIcons] || Clock;
                 const colorClass = statusColors[Status as keyof typeof statusColors] || statusColors.Pending;
+                const photoUrl = Attachments && Attachments.length > 0 ? Attachments[0] : null;
 
                 return (
                   <motion.div
@@ -517,15 +514,15 @@ export default function IssueBoard() {
                       </div>
                       
                       {/* Photo Thumbnail */}
-                      {Photo && (
+                      {photoUrl && (
                         <div className="flex-shrink-0">
                           <Image
-                            src={Photo}
+                            src={photoUrl}
                             alt="Issue photo"
                             width={80}
                             height={80}
                             className="rounded-lg object-cover border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                            onClick={() => window.open(Photo, '_blank')}
+                            onClick={() => window.open(photoUrl, '_blank')}
                           />
                         </div>
                       )}
