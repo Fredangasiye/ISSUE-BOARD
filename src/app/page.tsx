@@ -4,11 +4,12 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import { Camera, Upload, AlertCircle, CheckCircle, Clock, Filter } from "lucide-react";
-import { AIRTABLE_CONFIG, CLOUDINARY_CONFIG } from "@/lib/config";
+import { CLOUDINARY_CONFIG } from "@/lib/config";
 import Image from "next/image";
 
 interface Issue {
   id: string;
+  createdTime: string;
   fields: {
     Unit?: number;
     Category?: string;
@@ -114,7 +115,7 @@ export default function IssueBoard() {
       console.log('API response:', response.data);
       
       // Sort by createdTime for precise time-based ordering (most recent first)
-      const sortedRecords = response.data.records.sort((a: any, b: any) => {
+      const sortedRecords = response.data.records.sort((a: Issue, b: Issue) => {
         return new Date(b.createdTime).getTime() - new Date(a.createdTime).getTime();
       });
       
