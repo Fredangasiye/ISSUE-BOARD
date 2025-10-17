@@ -15,7 +15,6 @@ interface Issue {
     Category?: string;
     Description?: string;
     Status?: string;
-    Attachments?: string[];
     "Date Reported"?: string;
   };
 }
@@ -160,7 +159,6 @@ export default function IssueBoard() {
         Description: string;
         Status: string;
         "Date Reported": string;
-        Attachments?: string[];
       } = {
         Unit: unitNumber,
         Category: form.category,
@@ -169,9 +167,8 @@ export default function IssueBoard() {
         "Date Reported": new Date().toISOString().split('T')[0],
       };
 
-      if (form.photo) {
-        fields.Attachments = [form.photo];
-      }
+      // Note: Photo URLs are stored locally for now due to Airtable attachment format requirements
+      // TODO: Implement proper Airtable attachment upload
 
       await axios.post(
         `https://api.airtable.com/v0/${AIRTABLE_CONFIG.BASE_ID}/${AIRTABLE_CONFIG.TABLE_NAME}`,
@@ -476,10 +473,9 @@ export default function IssueBoard() {
               </motion.div>
             ) : (
               filteredIssues.map((record, index) => {
-                const { Unit, Category, Description, Status, Attachments, "Date Reported": dateReported } = record.fields;
+                const { Unit, Category, Description, Status, "Date Reported": dateReported } = record.fields;
                 const StatusIcon = statusIcons[Status as keyof typeof statusIcons] || Clock;
                 const colorClass = statusColors[Status as keyof typeof statusColors] || statusColors.Pending;
-                const photoUrl = Attachments && Attachments.length > 0 ? Attachments[0] : null;
 
                 return (
                   <motion.div
@@ -512,26 +508,6 @@ export default function IssueBoard() {
                           {Description || "No description provided"}
                         </p>
                       </div>
-                      
-                      {/* Photo Thumbnail */}
-                      {photoUrl && (
-                        <div className="flex-shrink-0">
-                          <Image
-                            src={photoUrl}
-                            alt="Issue photo"
-                            width={80}
-                            height={80}
-                            className="rounded-lg object-cover border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                            onClick={() => window.open(photoUrl, '_blank')}
-                          />
-                        </div>
-                      )}
-                      {/* Debug info - remove in production */}
-                      {process.env.NODE_ENV === 'development' && (
-                        <div className="text-xs text-gray-400 mt-2">
-                          Debug: Attachments={JSON.stringify(Attachments)}
-                        </div>
-                      )}
                     </div>
                     
                     <div className="mt-4 pt-3 border-t border-gray-100">
