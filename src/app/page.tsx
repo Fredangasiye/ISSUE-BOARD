@@ -14,13 +14,7 @@ interface Issue {
     Category?: string;
     Description?: string;
     Status?: string;
-    Attachments?: Array<{
-      id: string;
-      url: string;
-      filename: string;
-      size: number;
-      type: string;
-    }>;
+    Notes?: string;
     "Date Reported"?: string;
   };
 }
@@ -130,41 +124,8 @@ export default function IssueBoard() {
     }
   };
 
-  // Upload image to Airtable as attachment
-  const uploadToAirtable = async (imageUrl: string) => {
-    try {
-      // First, we need to download the image and convert it to a file
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      const file = new File([blob], 'issue-photo.jpg', { type: 'image/jpeg' });
-      
-      // Create FormData for Airtable attachment upload
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      // Upload to Airtable's attachment endpoint
-      const uploadResponse = await fetch(
-        `https://api.airtable.com/v0/appf13MlVsEMdFTKh/Issues%202/attachments`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${AIRTABLE_CONFIG.API_KEY}`,
-          },
-          body: formData,
-        }
-      );
-      
-      if (!uploadResponse.ok) {
-        throw new Error('Failed to upload attachment to Airtable');
-      }
-      
-      const uploadResult = await uploadResponse.json();
-      return uploadResult.id; // Return the attachment ID
-    } catch (error) {
-      console.error('Error uploading to Airtable:', error);
-      return null;
-    }
-  };
+  // Simplified approach: Store Cloudinary URL directly
+  // Airtable attachment upload is complex, so we'll use Cloudinary URLs directly
 
   // Initial load + auto-refresh every 30s
   useEffect(() => {
@@ -227,7 +188,7 @@ export default function IssueBoard() {
         Description: string;
         Status: string;
         "Date Reported": string;
-        Attachments?: string[];
+        Notes?: string;
       } = {
         Unit: unitNumber,
         Category: form.category,
@@ -236,16 +197,9 @@ export default function IssueBoard() {
         "Date Reported": new Date().toISOString().split('T')[0],
       };
 
-      // Upload photo to Airtable if provided
+      // Store Cloudinary URL in Notes field (we'll parse it for thumbnails)
       if (form.photo) {
-        setUploadStatus("Uploading photo to Airtable...");
-        const attachmentId = await uploadToAirtable(form.photo);
-        if (attachmentId) {
-          fields.Attachments = [attachmentId];
-          setUploadStatus("Photo uploaded to Airtable successfully!");
-        } else {
-          setUploadStatus("Failed to upload photo to Airtable");
-        }
+        fields.Notes = `PHOTO_URL:${form.photo}`;
       }
 
       await axios.post(
@@ -558,10 +512,12 @@ export default function IssueBoard() {
               </motion.div>
             ) : (
               filteredIssues.map((record, index) => {
-                const { Unit, Category, Description, Status, Attachments, "Date Reported": dateReported } = record.fields;
+                const { Unit, Category, Description, Status, Notes, "Date Reported": dateReported } = record.fields;
                 const StatusIcon = statusIcons[Status as keyof typeof statusIcons] || Clock;
                 const colorClass = statusColors[Status as keyof typeof statusColors] || statusColors.Pending;
-                const photoUrl = Attachments && Attachments.length > 0 ? Attachments[0].url : null;
+                
+                // Extract photo URL from Notes field
+                const photoUrl = Notes?.startsWith('PHOTO_URL:') ? Notes.replace('PHOTO_URL:', '') : null;
 
                 return (
                   <motion.div
