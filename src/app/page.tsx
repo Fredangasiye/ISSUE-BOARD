@@ -110,9 +110,7 @@ export default function IssueBoard() {
   // Fetch issues from Airtable via API route
   const fetchIssues = async () => {
     try {
-      console.log('Fetching issues from /api/issues...');
       const response = await axios.get('/api/issues');
-      console.log('API response:', response.data);
       
       // Sort by createdTime for precise time-based ordering (most recent first)
       const sortedRecords = response.data.records.sort((a: Issue, b: Issue) => {
@@ -120,7 +118,6 @@ export default function IssueBoard() {
       });
       
       setIssues(sortedRecords);
-      console.log('Issues set:', sortedRecords.length);
     } catch (err) {
       console.error("Error fetching issues:", err);
       setError("Failed to fetch issues. Please check your Airtable configuration.");
