@@ -193,14 +193,12 @@ export default function IssueBoard() {
             onClick={() => document.getElementById('report-form')?.scrollIntoView({ behavior: 'smooth' })}
             className="flex-1 bg-blue-600 text-white py-4 px-6 rounded-xl font-semibold hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105"
           >
-            <AlertCircle className="mr-2 h-6 w-6" />
             Report an Issue
           </button>
           <button
             onClick={() => document.getElementById('current-issues')?.scrollIntoView({ behavior: 'smooth' })}
             className="flex-1 bg-green-600 text-white py-4 px-6 rounded-xl font-semibold hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105"
           >
-            <CheckCircle className="mr-2 h-6 w-6" />
             Current Issues
           </button>
         </motion.div>
