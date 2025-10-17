@@ -116,16 +116,24 @@ export default function IssueBoard() {
     setError(null);
     setSuccess(null);
 
+    // Validate unit number
+    const unitNumber = parseInt(form.unit);
+    if (isNaN(unitNumber) || unitNumber <= 0) {
+      setError("Please enter a valid unit number (e.g., 101, 102, 201)");
+      setLoading(false);
+      return;
+    }
+
     try {
       const fields: {
-        Unit: string;
+        Unit: number;
         Category: string;
         Description: string;
         Status: string;
         "Date Reported": string;
         Photo?: string;
       } = {
-        Unit: form.unit,
+        Unit: unitNumber,
         Category: form.category,
         Description: form.description,
         Status: "Pending",
@@ -242,7 +250,7 @@ export default function IssueBoard() {
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g., 101, 2A, etc."
+                  placeholder="e.g., 101, 102, 201, etc."
                   className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 placeholder-gray-500"
                   value={form.unit}
                   onChange={(e) => setForm({ ...form, unit: e.target.value })}
