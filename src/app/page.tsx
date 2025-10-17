@@ -106,17 +106,10 @@ export default function IssueBoard() {
     }
   };
 
-  // Fetch issues from Airtable
+  // Fetch issues from Airtable via API route
   const fetchIssues = async () => {
     try {
-      const response = await axios.get(
-        `https://api.airtable.com/v0/${AIRTABLE_CONFIG.BASE_ID}/${AIRTABLE_CONFIG.TABLE_NAME}?view=Grid%20view&sort%5B0%5D%5Bfield%5D=Date%20Reported&sort%5B0%5D%5Bdirection%5D=desc`,
-        {
-          headers: { 
-            Authorization: `Bearer ${AIRTABLE_CONFIG.API_KEY}`,
-          },
-        }
-      );
+      const response = await axios.get('/api/issues');
       setIssues(response.data.records);
     } catch (err) {
       console.error("Error fetching issues:", err);
@@ -202,16 +195,7 @@ export default function IssueBoard() {
         fields.Notes = `PHOTO_URL:${form.photo}`;
       }
 
-      await axios.post(
-        `https://api.airtable.com/v0/${AIRTABLE_CONFIG.BASE_ID}/${AIRTABLE_CONFIG.TABLE_NAME}`,
-        { fields },
-        {
-          headers: {
-            Authorization: `Bearer ${AIRTABLE_CONFIG.API_KEY}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      await axios.post('/api/issues', { fields });
 
       setSuccess("Issue submitted successfully!");
       setForm({ unit: "", category: "", description: "", photo: null });
