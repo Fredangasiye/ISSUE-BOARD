@@ -243,7 +243,7 @@ export default function IssueBoard() {
                 <input
                   type="text"
                   placeholder="e.g., 101, 2A, etc."
-                  className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 placeholder-gray-500"
                   value={form.unit}
                   onChange={(e) => setForm({ ...form, unit: e.target.value })}
                   required
@@ -255,7 +255,7 @@ export default function IssueBoard() {
                   Category
                 </label>
                 <select
-                  className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900"
                   value={form.category}
                   onChange={(e) => setForm({ ...form, category: e.target.value })}
                   required
@@ -277,7 +277,7 @@ export default function IssueBoard() {
               <textarea
                 placeholder="Please describe the issue in detail..."
                 rows={4}
-                className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
+                className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none text-gray-900 placeholder-gray-500"
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                 required
