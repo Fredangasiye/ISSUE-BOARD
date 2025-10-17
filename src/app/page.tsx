@@ -4,8 +4,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import { Camera, Upload, AlertCircle, CheckCircle, Clock, Filter } from "lucide-react";
-import { AIRTABLE_CONFIG } from "@/lib/config";
-import { CldUploadWidget } from "next-cloudinary";
+import { AIRTABLE_CONFIG, CLOUDINARY_CONFIG } from "@/lib/config";
 import Image from "next/image";
 
 interface Issue {
