@@ -406,19 +406,6 @@ export default function IssueBoard() {
                 )}
               </CldUploadWidget>
             </div>
-          <Image
-                          src={form.photo} 
-                          alt="Uploaded" 
-                          width={80}
-                          height={80}
-                          className="mt-2 h-20 w-20 object-cover rounded-lg mx-auto"
-                        />
-                      )}
-                    </div>
-                  </div>
-                )}
-              </CldUploadWidget>
-            </div>
 
             <button
               type="submit"
