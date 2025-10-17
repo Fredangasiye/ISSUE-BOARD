@@ -73,6 +73,45 @@ export default function IssueBoard() {
   const [success, setSuccess] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [uploadStatus, setUploadStatus] = useState<string>("");
+  const [uploading, setUploading] = useState(false);
+
+  // Handle file selection and upload
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    setUploadStatus("Uploading...");
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', 'ml_default');
+
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.CLOUD_NAME}/image/upload`,
+        {
+          method: 'POST',
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const result = await response.json();
+      setForm({ ...form, photo: result.secure_url });
+      setUploadStatus("Photo uploaded successfully!");
+      setTimeout(() => setUploadStatus(""), 3000);
+    } catch (error) {
+      console.error('Upload error:', error);
+      setUploadStatus("Upload failed. Please try again.");
+      setTimeout(() => setUploadStatus(""), 3000);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   // Fetch issues from Airtable
   const fetchIssues = async () => {
@@ -125,21 +164,6 @@ export default function IssueBoard() {
     } catch (error) {
       console.error('Error uploading to Airtable:', error);
       return null;
-    }
-  };
-
-  // Handle photo upload
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handlePhotoUpload = (result: any) => {
-    if (result.event === "success") {
-      setForm({ ...form, photo: result.info.secure_url });
-      setUploadStatus("Photo uploaded successfully!");
-      setTimeout(() => setUploadStatus(""), 3000);
-    } else if (result.event === "error") {
-      setUploadStatus("Upload failed. Please try again.");
-      setTimeout(() => setUploadStatus(""), 3000);
-    } else if (result.event === "uploading") {
-      setUploadStatus("Uploading...");
     }
   };
 
@@ -406,53 +430,60 @@ export default function IssueBoard() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Photo (Optional)
               </label>
-              <CldUploadWidget
-                uploadPreset="ml_default"
-                onUpload={handlePhotoUpload}
-                options={{
-                  maxFiles: 1,
-                  resourceType: "image",
-                  maxFileSize: 5000000, // 5MB
-                }}
-              >
-                {({ open }) => (
-                  <div
-                    onClick={() => open()}
-                    className={`flex items-center justify-center w-full p-4 border-2 border-dashed rounded-xl cursor-pointer transition-all ${
-                      form.photo 
-                        ? 'border-green-400 bg-green-50' 
-                        : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'
-                    }`}
-                  >
-                    <div className="text-center">
-                      <Camera className={`mx-auto h-8 w-8 mb-2 ${
-                        form.photo ? 'text-green-500' : 'text-gray-400'
-                      }`} />
-                      <p className={`text-sm ${
-                        form.photo ? 'text-green-600' : 'text-gray-600'
-                      }`}>
-                        {form.photo ? "Photo uploaded ✓" : "Click to upload a photo"}
-                      </p>
-                      {uploadStatus && (
-                        <p className={`text-xs mt-1 ${
-                          uploadStatus.includes('successfully') ? 'text-green-600' : 'text-red-600'
+              <div className="relative">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileSelect}
+                  disabled={uploading}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                />
+                <div
+                  className={`flex items-center justify-center w-full p-4 border-2 border-dashed rounded-xl transition-all ${
+                    form.photo 
+                      ? 'border-green-400 bg-green-50' 
+                      : uploading
+                      ? 'border-blue-400 bg-blue-50'
+                      : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'
+                  } ${uploading ? 'cursor-wait' : 'cursor-pointer'}`}
+                >
+                  <div className="text-center">
+                    {uploading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                        <p className="text-sm text-blue-600">Uploading...</p>
+                      </>
+                    ) : (
+                      <>
+                        <Camera className={`mx-auto h-8 w-8 mb-2 ${
+                          form.photo ? 'text-green-500' : 'text-gray-400'
+                        }`} />
+                        <p className={`text-sm ${
+                          form.photo ? 'text-green-600' : 'text-gray-600'
                         }`}>
-                          {uploadStatus}
+                          {form.photo ? "Photo uploaded ✓" : "Click to upload a photo"}
                         </p>
-                      )}
-                      {form.photo && (
-                        <Image
-                          src={form.photo}
-                          alt="Uploaded"
-                          width={60}
-                          height={60}
-                          className="mt-2 h-15 w-15 object-cover rounded-lg mx-auto"
-                        />
-                      )}
-                    </div>
+                      </>
+                    )}
+                    {uploadStatus && !uploading && (
+                      <p className={`text-xs mt-1 ${
+                        uploadStatus.includes('successfully') ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {uploadStatus}
+                      </p>
+                    )}
+                    {form.photo && !uploading && (
+                      <Image
+                        src={form.photo}
+                        alt="Uploaded"
+                        width={60}
+                        height={60}
+                        className="mt-2 h-15 w-15 object-cover rounded-lg mx-auto"
+                      />
+                    )}
                   </div>
-                )}
-              </CldUploadWidget>
+                </div>
+              </div>
             </div>
 
             <button
