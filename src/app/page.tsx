@@ -112,8 +112,14 @@ export default function IssueBoard() {
       console.log('Fetching issues from /api/issues...');
       const response = await axios.get('/api/issues');
       console.log('API response:', response.data);
-      setIssues(response.data.records);
-      console.log('Issues set:', response.data.records.length);
+      
+      // Sort by createdTime for precise time-based ordering (most recent first)
+      const sortedRecords = response.data.records.sort((a: any, b: any) => {
+        return new Date(b.createdTime).getTime() - new Date(a.createdTime).getTime();
+      });
+      
+      setIssues(sortedRecords);
+      console.log('Issues set:', sortedRecords.length);
     } catch (err) {
       console.error("Error fetching issues:", err);
       setError("Failed to fetch issues. Please check your Airtable configuration.");
@@ -541,14 +547,26 @@ export default function IssueBoard() {
                       {/* Photo Thumbnail */}
                       {photoUrl && (
                         <div className="flex-shrink-0">
-                          <Image
-                            src={photoUrl}
-                            alt="Issue photo"
-                            width={80}
-                            height={80}
-                            className="rounded-lg object-cover border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                            onClick={() => window.open(photoUrl, '_blank')}
-                          />
+                          <div className="relative w-20 h-20 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer bg-gray-50 flex items-center justify-center group">
+                            <Image
+                              src={photoUrl}
+                              alt="Issue photo"
+                              width={80}
+                              height={80}
+                              className="rounded-lg object-cover w-full h-full"
+                              onClick={() => window.open(photoUrl, '_blank')}
+                              onError={(e) => {
+                                // Hide the image and show icon instead
+                                e.currentTarget.style.display = 'none';
+                                const icon = e.currentTarget.nextElementSibling as HTMLElement;
+                                if (icon) icon.style.display = 'flex';
+                              }}
+                            />
+                            {/* Fallback icon when image fails to load */}
+                            <div className="hidden absolute inset-0 flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg">
+                              <Camera className="h-8 w-8 text-blue-500 group-hover:text-blue-600 transition-colors" />
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
