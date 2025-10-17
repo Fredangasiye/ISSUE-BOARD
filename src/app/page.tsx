@@ -476,7 +476,7 @@ export default function IssueBoard() {
               </motion.div>
             ) : (
               filteredIssues.map((record, index) => {
-                const { Unit, Category, Description, Status, Attachments } = record.fields;
+                const { Unit, Category, Description, Status, Attachments, "Date Reported": dateReported } = record.fields;
                 const StatusIcon = statusIcons[Status as keyof typeof statusIcons] || Clock;
                 const colorClass = statusColors[Status as keyof typeof statusColors] || statusColors.Pending;
                 const photoUrl = Attachments && Attachments.length > 0 ? Attachments[0] : null;
@@ -526,12 +526,23 @@ export default function IssueBoard() {
                           />
                         </div>
                       )}
+                      {/* Debug info - remove in production */}
+                      {process.env.NODE_ENV === 'development' && (
+                        <div className="text-xs text-gray-400 mt-2">
+                          Debug: Attachments={JSON.stringify(Attachments)}
+                        </div>
+                      )}
                     </div>
                     
                     <div className="mt-4 pt-3 border-t border-gray-100">
-                      <p className="text-xs text-gray-500">
-                        Issue ID: {record.id.slice(-8)}
-                      </p>
+                      <div className="flex justify-between items-center">
+                        <p className="text-xs text-gray-500">
+                          Issue ID: {record.id.slice(-8)}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Submitted: {dateReported ? new Date(dateReported).toLocaleDateString() : 'Unknown'}
+                        </p>
+                      </div>
                     </div>
                   </motion.div>
                 );
