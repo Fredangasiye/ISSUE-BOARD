@@ -15,6 +15,13 @@ interface Issue {
     Category?: string;
     Description?: string;
     Status?: string;
+    Attachments?: Array<{
+      id: string;
+      url: string;
+      filename: string;
+      size: number;
+      type: string;
+    }>;
     "Date Reported"?: string;
   };
 }
@@ -85,6 +92,42 @@ export default function IssueBoard() {
     }
   };
 
+  // Upload image to Airtable as attachment
+  const uploadToAirtable = async (imageUrl: string) => {
+    try {
+      // First, we need to download the image and convert it to a file
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const file = new File([blob], 'issue-photo.jpg', { type: 'image/jpeg' });
+      
+      // Create FormData for Airtable attachment upload
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // Upload to Airtable's attachment endpoint
+      const uploadResponse = await fetch(
+        `https://api.airtable.com/v0/appf13MlVsEMdFTKh/Issues%202/attachments`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${AIRTABLE_CONFIG.API_KEY}`,
+          },
+          body: formData,
+        }
+      );
+      
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload attachment to Airtable');
+      }
+      
+      const uploadResult = await uploadResponse.json();
+      return uploadResult.id; // Return the attachment ID
+    } catch (error) {
+      console.error('Error uploading to Airtable:', error);
+      return null;
+    }
+  };
+
   // Handle photo upload
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handlePhotoUpload = (result: any) => {
@@ -95,6 +138,8 @@ export default function IssueBoard() {
     } else if (result.event === "error") {
       setUploadStatus("Upload failed. Please try again.");
       setTimeout(() => setUploadStatus(""), 3000);
+    } else if (result.event === "uploading") {
+      setUploadStatus("Uploading...");
     }
   };
 
@@ -159,6 +204,7 @@ export default function IssueBoard() {
         Description: string;
         Status: string;
         "Date Reported": string;
+        Attachments?: string[];
       } = {
         Unit: unitNumber,
         Category: form.category,
@@ -167,8 +213,17 @@ export default function IssueBoard() {
         "Date Reported": new Date().toISOString().split('T')[0],
       };
 
-      // Note: Photo URLs are stored locally for now due to Airtable attachment format requirements
-      // TODO: Implement proper Airtable attachment upload
+      // Upload photo to Airtable if provided
+      if (form.photo) {
+        setUploadStatus("Uploading photo to Airtable...");
+        const attachmentId = await uploadToAirtable(form.photo);
+        if (attachmentId) {
+          fields.Attachments = [attachmentId];
+          setUploadStatus("Photo uploaded to Airtable successfully!");
+        } else {
+          setUploadStatus("Failed to upload photo to Airtable");
+        }
+      }
 
       await axios.post(
         `https://api.airtable.com/v0/${AIRTABLE_CONFIG.BASE_ID}/${AIRTABLE_CONFIG.TABLE_NAME}`,
@@ -473,9 +528,10 @@ export default function IssueBoard() {
               </motion.div>
             ) : (
               filteredIssues.map((record, index) => {
-                const { Unit, Category, Description, Status, "Date Reported": dateReported } = record.fields;
+                const { Unit, Category, Description, Status, Attachments, "Date Reported": dateReported } = record.fields;
                 const StatusIcon = statusIcons[Status as keyof typeof statusIcons] || Clock;
                 const colorClass = statusColors[Status as keyof typeof statusColors] || statusColors.Pending;
+                const photoUrl = Attachments && Attachments.length > 0 ? Attachments[0].url : null;
 
                 return (
                   <motion.div
@@ -508,6 +564,20 @@ export default function IssueBoard() {
                           {Description || "No description provided"}
                         </p>
                       </div>
+                      
+                      {/* Photo Thumbnail */}
+                      {photoUrl && (
+                        <div className="flex-shrink-0">
+                          <Image
+                            src={photoUrl}
+                            alt="Issue photo"
+                            width={80}
+                            height={80}
+                            className="rounded-lg object-cover border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                            onClick={() => window.open(photoUrl, '_blank')}
+                          />
+                        </div>
+                      )}
                     </div>
                     
                     <div className="mt-4 pt-3 border-t border-gray-100">
