@@ -401,7 +401,7 @@ export default function IssueBoard() {
               </motion.div>
             ) : (
               filteredIssues.map((record, index) => {
-                const { Unit, Category, Description, Status } = record.fields;
+                const { Unit, Category, Description, Status, Photo } = record.fields;
                 const StatusIcon = statusIcons[Status as keyof typeof statusIcons] || Clock;
                 const colorClass = statusColors[Status as keyof typeof statusColors] || statusColors.Pending;
 
@@ -430,9 +430,27 @@ export default function IssueBoard() {
                       </span>
                     </div>
                     
-                    <p className="text-gray-700 leading-relaxed">
-                      {Description || "No description provided"}
-                    </p>
+                    <div className="flex gap-4">
+                      <div className="flex-1">
+                        <p className="text-gray-700 leading-relaxed">
+                          {Description || "No description provided"}
+                        </p>
+                      </div>
+                      
+                      {/* Photo Thumbnail */}
+                      {Photo && (
+                        <div className="flex-shrink-0">
+                          <Image
+                            src={Photo}
+                            alt="Issue photo"
+                            width={80}
+                            height={80}
+                            className="rounded-lg object-cover border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                            onClick={() => window.open(Photo, '_blank')}
+                          />
+                        </div>
+                      )}
+                    </div>
                     
                     <div className="mt-4 pt-3 border-t border-gray-100">
                       <p className="text-xs text-gray-500">
