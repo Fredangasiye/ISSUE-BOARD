@@ -109,8 +109,11 @@ export default function IssueBoard() {
   // Fetch issues from Airtable via API route
   const fetchIssues = async () => {
     try {
+      console.log('Fetching issues from /api/issues...');
       const response = await axios.get('/api/issues');
+      console.log('API response:', response.data);
       setIssues(response.data.records);
+      console.log('Issues set:', response.data.records.length);
     } catch (err) {
       console.error("Error fetching issues:", err);
       setError("Failed to fetch issues. Please check your Airtable configuration.");
