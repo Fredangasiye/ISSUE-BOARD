@@ -157,12 +157,13 @@ export default function IssueBoard() {
     // Validate all fields
     const errors: FormErrors = {};
     
-    // Validate unit number
-    const unitNumber = parseInt(form.unit);
-    if (!form.unit.trim()) {
-      errors.unit = "Unit number is required";
-    } else if (isNaN(unitNumber) || unitNumber <= 0) {
-      errors.unit = "Please enter a valid unit number (e.g., 101, 102, 201)";
+    // Validate unit number (optional)
+    let unitNumber: number | undefined;
+    if (form.unit.trim()) {
+      unitNumber = parseInt(form.unit);
+      if (isNaN(unitNumber) || unitNumber <= 0) {
+        errors.unit = "Please enter a valid unit number (e.g., 101, 102, 201)";
+      }
     }
     
     // Validate category
@@ -183,19 +184,23 @@ export default function IssueBoard() {
 
     try {
       const fields: {
-        Unit: number;
+        Unit?: number;
         Category: string;
         Description: string;
         Status: string;
         "Date Reported": string;
         Notes?: string;
       } = {
-        Unit: unitNumber,
         Category: form.category,
         Description: form.description,
         Status: "Pending",
         "Date Reported": new Date().toISOString().split('T')[0],
       };
+
+      // Add Unit field only if provided
+      if (unitNumber !== undefined) {
+        fields.Unit = unitNumber;
+      }
 
       // Store Cloudinary URL in Notes field (we'll parse it for thumbnails)
       if (form.photo) {
@@ -298,7 +303,7 @@ export default function IssueBoard() {
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g., 101, 102, 201, etc."
+                  placeholder="e.g., 101, 102, 201, etc. (Optional)"
                   className={`w-full border p-3 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 placeholder-gray-500 ${
                     formErrors.unit ? 'border-red-500 bg-red-50' : 'border-gray-300'
                   }`}
@@ -309,7 +314,6 @@ export default function IssueBoard() {
                       setFormErrors({ ...formErrors, unit: undefined });
                     }
                   }}
-                  required
                 />
                 {formErrors.unit && (
                   <p className="text-red-500 text-sm mt-1">{formErrors.unit}</p>
