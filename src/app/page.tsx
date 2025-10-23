@@ -4,18 +4,24 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import { Camera, Upload, AlertCircle, CheckCircle, Clock, Filter } from "lucide-react";
-import { CLOUDINARY_CONFIG } from "@/lib/config";
+import { AIRTABLE_CONFIG } from "@/lib/config";
+import { CldUploadWidget } from "next-cloudinary";
 import Image from "next/image";
 
 interface Issue {
   id: string;
-  createdTime: string;
   fields: {
     Unit?: number;
     Category?: string;
     Description?: string;
     Status?: string;
-    Notes?: string;
+    Attachments?: Array<{
+      id: string;
+      url: string;
+      filename: string;
+      size: number;
+      type: string;
+    }>;
     "Date Reported"?: string;
   };
 }
@@ -67,65 +73,75 @@ export default function IssueBoard() {
   const [success, setSuccess] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [uploadStatus, setUploadStatus] = useState<string>("");
-  const [uploading, setUploading] = useState(false);
 
-  // Handle file selection and upload
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setUploading(true);
-    setUploadStatus("Uploading...");
-
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('upload_preset', 'ml_default');
-
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.CLOUD_NAME}/image/upload`,
-        {
-          method: 'POST',
-          body: formData,
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Upload failed');
-      }
-
-      const result = await response.json();
-      setForm({ ...form, photo: result.secure_url });
-      setUploadStatus("Photo uploaded successfully!");
-      setTimeout(() => setUploadStatus(""), 3000);
-    } catch (error) {
-      console.error('Upload error:', error);
-      setUploadStatus("Upload failed. Please try again.");
-      setTimeout(() => setUploadStatus(""), 3000);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  // Fetch issues from Airtable via API route
+  // Fetch issues from Airtable
   const fetchIssues = async () => {
     try {
-      const response = await axios.get('/api/issues');
-      
-      // Sort by createdTime for precise time-based ordering (most recent first)
-      const sortedRecords = response.data.records.sort((a: Issue, b: Issue) => {
-        return new Date(b.createdTime).getTime() - new Date(a.createdTime).getTime();
-      });
-      
-      setIssues(sortedRecords);
+      const response = await axios.get(
+        `https://api.airtable.com/v0/${AIRTABLE_CONFIG.BASE_ID}/${AIRTABLE_CONFIG.TABLE_NAME}?view=Grid%20view&sort%5B0%5D%5Bfield%5D=Date%20Reported&sort%5B0%5D%5Bdirection%5D=desc`,
+        {
+          headers: { 
+            Authorization: `Bearer ${AIRTABLE_CONFIG.API_KEY}`,
+          },
+        }
+      );
+      setIssues(response.data.records);
     } catch (err) {
       console.error("Error fetching issues:", err);
       setError("Failed to fetch issues. Please check your Airtable configuration.");
     }
   };
 
-  // Simplified approach: Store Cloudinary URL directly
-  // Airtable attachment upload is complex, so we'll use Cloudinary URLs directly
+  // Upload image to Airtable as attachment
+  const uploadToAirtable = async (imageUrl: string) => {
+    try {
+      // First, we need to download the image and convert it to a file
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const file = new File([blob], 'issue-photo.jpg', { type: 'image/jpeg' });
+      
+      // Create FormData for Airtable attachment upload
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // Upload to Airtable's attachment endpoint
+      const uploadResponse = await fetch(
+        `https://api.airtable.com/v0/appf13MlVsEMdFTKh/Issues%202/attachments`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${AIRTABLE_CONFIG.API_KEY}`,
+          },
+          body: formData,
+        }
+      );
+      
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload attachment to Airtable');
+      }
+      
+      const uploadResult = await uploadResponse.json();
+      return uploadResult.id; // Return the attachment ID
+    } catch (error) {
+      console.error('Error uploading to Airtable:', error);
+      return null;
+    }
+  };
+
+  // Handle photo upload
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handlePhotoUpload = (result: any) => {
+    if (result.event === "success") {
+      setForm({ ...form, photo: result.info.secure_url });
+      setUploadStatus("Photo uploaded successfully!");
+      setTimeout(() => setUploadStatus(""), 3000);
+    } else if (result.event === "error") {
+      setUploadStatus("Upload failed. Please try again.");
+      setTimeout(() => setUploadStatus(""), 3000);
+    } else if (result.event === "uploading") {
+      setUploadStatus("Uploading...");
+    }
+  };
 
   // Initial load + auto-refresh every 30s
   useEffect(() => {
@@ -157,13 +173,12 @@ export default function IssueBoard() {
     // Validate all fields
     const errors: FormErrors = {};
     
-    // Validate unit number (optional)
-    let unitNumber: number | undefined;
-    if (form.unit.trim()) {
-      unitNumber = parseInt(form.unit);
-      if (isNaN(unitNumber) || unitNumber <= 0) {
-        errors.unit = "Please enter a valid unit number (e.g., 101, 102, 201)";
-      }
+    // Validate unit number
+    const unitNumber = parseInt(form.unit);
+    if (!form.unit.trim()) {
+      errors.unit = "Unit number is required";
+    } else if (isNaN(unitNumber) || unitNumber <= 0) {
+      errors.unit = "Please enter a valid unit number (e.g., 101, 102, 201)";
     }
     
     // Validate category
@@ -184,30 +199,42 @@ export default function IssueBoard() {
 
     try {
       const fields: {
-        Unit?: number;
+        Unit: number;
         Category: string;
         Description: string;
         Status: string;
         "Date Reported": string;
-        Notes?: string;
+        Attachments?: string[];
       } = {
+        Unit: unitNumber,
         Category: form.category,
         Description: form.description,
         Status: "Pending",
         "Date Reported": new Date().toISOString().split('T')[0],
       };
 
-      // Add Unit field only if provided
-      if (unitNumber !== undefined) {
-        fields.Unit = unitNumber;
-      }
-
-      // Store Cloudinary URL in Notes field (we'll parse it for thumbnails)
+      // Upload photo to Airtable if provided
       if (form.photo) {
-        fields.Notes = `PHOTO_URL:${form.photo}`;
+        setUploadStatus("Uploading photo to Airtable...");
+        const attachmentId = await uploadToAirtable(form.photo);
+        if (attachmentId) {
+          fields.Attachments = [attachmentId];
+          setUploadStatus("Photo uploaded to Airtable successfully!");
+        } else {
+          setUploadStatus("Failed to upload photo to Airtable");
+        }
       }
 
-      await axios.post('/api/issues', { fields });
+      await axios.post(
+        `https://api.airtable.com/v0/${AIRTABLE_CONFIG.BASE_ID}/${AIRTABLE_CONFIG.TABLE_NAME}`,
+        { fields },
+        {
+          headers: {
+            Authorization: `Bearer ${AIRTABLE_CONFIG.API_KEY}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       setSuccess("Issue submitted successfully!");
       setForm({ unit: "", category: "", description: "", photo: null });
@@ -303,7 +330,7 @@ export default function IssueBoard() {
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g., 101, 102, 201, etc. (Optional)"
+                  placeholder="e.g., 101, 102, 201, etc."
                   className={`w-full border p-3 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 placeholder-gray-500 ${
                     formErrors.unit ? 'border-red-500 bg-red-50' : 'border-gray-300'
                   }`}
@@ -314,6 +341,7 @@ export default function IssueBoard() {
                       setFormErrors({ ...formErrors, unit: undefined });
                     }
                   }}
+                  required
                 />
                 {formErrors.unit && (
                   <p className="text-red-500 text-sm mt-1">{formErrors.unit}</p>
@@ -378,60 +406,53 @@ export default function IssueBoard() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Photo (Optional)
               </label>
-              <div className="relative">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileSelect}
-                  disabled={uploading}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-                />
-                <div
-                  className={`flex items-center justify-center w-full p-4 border-2 border-dashed rounded-xl transition-all ${
-                    form.photo 
-                      ? 'border-green-400 bg-green-50' 
-                      : uploading
-                      ? 'border-blue-400 bg-blue-50'
-                      : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'
-                  } ${uploading ? 'cursor-wait' : 'cursor-pointer'}`}
-                >
-                  <div className="text-center">
-                    {uploading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                        <p className="text-sm text-blue-600">Uploading...</p>
-                      </>
-                    ) : (
-                      <>
-                        <Camera className={`mx-auto h-8 w-8 mb-2 ${
-                          form.photo ? 'text-green-500' : 'text-gray-400'
-                        }`} />
-                        <p className={`text-sm ${
-                          form.photo ? 'text-green-600' : 'text-gray-600'
-                        }`}>
-                          {form.photo ? "Photo uploaded ✓" : "Click to upload a photo"}
-                        </p>
-                      </>
-                    )}
-                    {uploadStatus && !uploading && (
-                      <p className={`text-xs mt-1 ${
-                        uploadStatus.includes('successfully') ? 'text-green-600' : 'text-red-600'
+              <CldUploadWidget
+                uploadPreset="ml_default"
+                onUpload={handlePhotoUpload}
+                options={{
+                  maxFiles: 1,
+                  resourceType: "image",
+                  maxFileSize: 5000000, // 5MB
+                }}
+              >
+                {({ open }) => (
+                  <div
+                    onClick={() => open()}
+                    className={`flex items-center justify-center w-full p-4 border-2 border-dashed rounded-xl cursor-pointer transition-all ${
+                      form.photo 
+                        ? 'border-green-400 bg-green-50' 
+                        : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'
+                    }`}
+                  >
+                    <div className="text-center">
+                      <Camera className={`mx-auto h-8 w-8 mb-2 ${
+                        form.photo ? 'text-green-500' : 'text-gray-400'
+                      }`} />
+                      <p className={`text-sm ${
+                        form.photo ? 'text-green-600' : 'text-gray-600'
                       }`}>
-                        {uploadStatus}
+                        {form.photo ? "Photo uploaded ✓" : "Click to upload a photo"}
                       </p>
-                    )}
-                    {form.photo && !uploading && (
-                      <Image
-                        src={form.photo}
-                        alt="Uploaded"
-                        width={60}
-                        height={60}
-                        className="mt-2 h-15 w-15 object-cover rounded-lg mx-auto"
-                      />
-                    )}
+                      {uploadStatus && (
+                        <p className={`text-xs mt-1 ${
+                          uploadStatus.includes('successfully') ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {uploadStatus}
+                        </p>
+                      )}
+                      {form.photo && (
+                        <Image
+                          src={form.photo}
+                          alt="Uploaded"
+                          width={60}
+                          height={60}
+                          className="mt-2 h-15 w-15 object-cover rounded-lg mx-auto"
+                        />
+                      )}
+                    </div>
                   </div>
-                </div>
-              </div>
+                )}
+              </CldUploadWidget>
             </div>
 
             <button
@@ -507,12 +528,10 @@ export default function IssueBoard() {
               </motion.div>
             ) : (
               filteredIssues.map((record, index) => {
-                const { Unit, Category, Description, Status, Notes, "Date Reported": dateReported } = record.fields;
+                const { Unit, Category, Description, Status, Attachments, "Date Reported": dateReported } = record.fields;
                 const StatusIcon = statusIcons[Status as keyof typeof statusIcons] || Clock;
                 const colorClass = statusColors[Status as keyof typeof statusColors] || statusColors.Pending;
-                
-                // Extract photo URL from Notes field
-                const photoUrl = Notes?.startsWith('PHOTO_URL:') ? Notes.replace('PHOTO_URL:', '') : null;
+                const photoUrl = Attachments && Attachments.length > 0 ? Attachments[0].url : null;
 
                 return (
                   <motion.div
@@ -549,26 +568,14 @@ export default function IssueBoard() {
                       {/* Photo Thumbnail */}
                       {photoUrl && (
                         <div className="flex-shrink-0">
-                          <div className="relative w-20 h-20 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer bg-gray-50 flex items-center justify-center group">
-                            <Image
-                              src={photoUrl}
-                              alt="Issue photo"
-                              width={80}
-                              height={80}
-                              className="rounded-lg object-cover w-full h-full"
-                              onClick={() => window.open(photoUrl, '_blank')}
-                              onError={(e) => {
-                                // Hide the image and show icon instead
-                                e.currentTarget.style.display = 'none';
-                                const icon = e.currentTarget.nextElementSibling as HTMLElement;
-                                if (icon) icon.style.display = 'flex';
-                              }}
-                            />
-                            {/* Fallback icon when image fails to load */}
-                            <div className="hidden absolute inset-0 flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg">
-                              <Camera className="h-8 w-8 text-blue-500 group-hover:text-blue-600 transition-colors" />
-                            </div>
-                          </div>
+                          <Image
+                            src={photoUrl}
+                            alt="Issue photo"
+                            width={80}
+                            height={80}
+                            className="rounded-lg object-cover border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                            onClick={() => window.open(photoUrl, '_blank')}
+                          />
                         </div>
                       )}
                     </div>
