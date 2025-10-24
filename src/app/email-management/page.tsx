@@ -27,8 +27,8 @@ export default function EmailManagementPage() {
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to send weekly report.' });
       }
-    } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'An unexpected error occurred.' });
+    } catch (error: unknown) {
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'An unexpected error occurred.' });
     } finally {
       setLoading(false);
     }
@@ -53,8 +53,8 @@ export default function EmailManagementPage() {
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to send test email.' });
       }
-    } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'An unexpected error occurred.' });
+    } catch (error: unknown) {
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'An unexpected error occurred.' });
     } finally {
       setLoading(false);
     }

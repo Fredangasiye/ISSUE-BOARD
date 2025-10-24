@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 export default function EmailTestPage() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<{success: boolean; message?: string; error?: string; report?: any} | null>(null);
 
   const sendTestReport = async () => {
     if (!email) {
@@ -28,7 +28,7 @@ export default function EmailTestPage() {
 
       const data = await response.json();
       setResult(data);
-    } catch (error) {
+    } catch (error: unknown) {
       setResult({
         success: false,
         error: 'Failed to send email report'
