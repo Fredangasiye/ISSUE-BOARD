@@ -1,5 +1,19 @@
 import nodemailer from 'nodemailer';
-import { generateWeeklyReport } from './weekly-report';
+
+export interface WeeklyReportData {
+  weekStart: string;
+  weekEnd: string;
+  totalIssues: number;
+  newIssues: number;
+  resolvedIssues: number;
+  byCategory: Record<string, number>;
+  byStatus: Record<string, number>;
+  recentIssues: Array<{
+    unit: number | string;
+    description: string;
+    category: string;
+  }>;
+}
 
 export interface EmailConfig {
   service: string;
@@ -16,7 +30,7 @@ export class EmailService {
     this.transporter = nodemailer.createTransport(config);
   }
 
-  async sendWeeklyReport(email: string, report: any) {
+  async sendWeeklyReport(email: string, report: WeeklyReportData) {
     const message = this.formatWeeklyReport(report);
     
     const mailOptions = {
@@ -29,7 +43,7 @@ export class EmailService {
     await this.transporter.sendMail(mailOptions);
   }
 
-  private formatWeeklyReport(report: any): string {
+  private formatWeeklyReport(report: WeeklyReportData): string {
     return `
       <h2>📊 Weekly Issue Report</h2>
       <p><strong>Period:</strong> ${report.weekStart} to ${report.weekEnd}</p>
@@ -57,7 +71,7 @@ export class EmailService {
       
       <h3>🆕 Recent Issues:</h3>
       <ul>
-        ${report.recentIssues.map((issue: any) => 
+        ${report.recentIssues.map((issue) => 
           `<li>Unit ${issue.unit || 'N/A'}: ${issue.description.substring(0, 100)}...</li>`
         ).join('')}
       </ul>
