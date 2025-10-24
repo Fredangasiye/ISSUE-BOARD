@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { WhatsAppService } from '@/lib/whatsapp-service';
 import { generateWeeklyReport } from '@/lib/weekly-report';
 
 const whatsappService = new WhatsAppService();
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     // Generate weekly report
     const report = await generateWeeklyReport();
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
       byCategory: Object.entries(report.byCategory).map(([name, count]) => ({ name, count })),
       byStatus: Object.entries(report.byStatus).map(([name, count]) => ({ name, count })),
       recentIssues: report.recentIssues.map(issue => ({
-        unit: issue.unit,
+        unit: typeof issue.unit === 'string' ? parseInt(issue.unit) || 0 : issue.unit,
         description: issue.description,
         category: issue.category
       }))

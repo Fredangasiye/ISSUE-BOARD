@@ -20,7 +20,7 @@ cron.schedule('0 9 * * 1', async () => {
       byCategory: Object.entries(report.byCategory).map(([name, count]) => ({ name, count })),
       byStatus: Object.entries(report.byStatus).map(([name, count]) => ({ name, count })),
       recentIssues: report.recentIssues.map(issue => ({
-        unit: issue.unit,
+        unit: typeof issue.unit === 'string' ? parseInt(issue.unit) || 0 : issue.unit,
         description: issue.description,
         category: issue.category
       }))
