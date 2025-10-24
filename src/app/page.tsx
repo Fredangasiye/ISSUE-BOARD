@@ -597,6 +597,15 @@ export default function IssueBoard() {
           </AnimatePresence>
         </motion.div>
       </div>
+      
+      {/* Footer */}
+      <footer className="mt-12 py-6 border-t border-gray-200 bg-gray-50">
+        <div className="container mx-auto px-4 text-center">
+          <p className="text-sm text-gray-600">
+            A vAIb App
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
