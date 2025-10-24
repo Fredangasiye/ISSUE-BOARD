@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import "@/lib/whatsapp-init"; // Initialize WhatsApp service
+import "@/lib/email-scheduler"; // Initialize Email scheduler
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
